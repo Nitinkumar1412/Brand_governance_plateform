@@ -1,0 +1,3 @@
+The team launched the product in 2020 and our AI has processed 200k files. It reviews every brief in 5 minutes and supports 25 markets.
+
+This old research remains useful for the current roadmap.

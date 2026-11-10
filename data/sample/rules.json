@@ -1,0 +1,66 @@
+[
+  {
+    "code": "TONE-01",
+    "category": "tone",
+    "title": "Confident but measured tone",
+    "body": "Write in a clear, confident and reassuring tone. Avoid hype language that lacks evidence.",
+    "severity": "medium",
+    "page": 2
+  },
+  {
+    "code": "TONE-02",
+    "category": "tone",
+    "title": "Avoid exaggerated claims",
+    "body": "Do not cast the product as universally perfect or effortless when the claim is not supported.",
+    "severity": "high",
+    "page": 3
+  },
+  {
+    "code": "TERM-01",
+    "category": "terminology",
+    "title": "Use approved product naming",
+    "body": "Use the approved name Inkloom Pro 2 and never the older unapproved term 'Inkloom Max'.",
+    "severity": "high",
+    "page": 4
+  },
+  {
+    "code": "TERM-02",
+    "category": "terminology",
+    "title": "Replace hype words",
+    "body": "Prefer plain, factual wording instead of hype terms like guaranteed, best-in-class, or can't-miss.",
+    "severity": "medium",
+    "page": 5
+  },
+  {
+    "code": "FACT-01",
+    "category": "facts",
+    "title": "Battery claim threshold",
+    "body": "Any battery claim must match official approved facts and plainly state the measured duration.",
+    "severity": "high",
+    "page": 6
+  },
+  {
+    "code": "FACT-02",
+    "category": "facts",
+    "title": "Pricing accuracy",
+    "body": "Price claims must match the current approved pricing and include the correct currency unit.",
+    "severity": "high",
+    "page": 7
+  },
+  {
+    "code": "VIS-01",
+    "category": "visual",
+    "title": "Brand palette",
+    "body": "Use the approved palette and keep visuals aligned with the Inkloom brand system.",
+    "severity": "low",
+    "page": 8
+  },
+  {
+    "code": "A11Y-01",
+    "category": "accessibility",
+    "title": "Readable contrast",
+    "body": "Body copy must maintain accessible contrast and alt text for non-decorative images.",
+    "severity": "medium",
+    "page": 9
+  }
+]

@@ -10,7 +10,7 @@ from app.db import get_db, scoped
 from app.models import Finding, ScanJob, User
 from app.scan import execute_scan
 from app.workflow import (
-    InvalidState, NotFound, decide_finding, latest_scan,
+    InvalidState, NotFound, brand_drift_analytics, decide_finding, latest_scan,
     latest_version, rule_stats, scan_counts, start_scan
 )
 
@@ -121,4 +121,11 @@ def review_decision(
 @router.get("/insights/rules")
 def get_rule_insights(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return rule_stats(db, current_user.org_id)
+
+
+@router.get("/insights/brand-drift")
+def get_brand_drift_insights(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Executive Brand Drift Analytics: Top violated rules, fatigue alerts, and health metrics."""
+    return brand_drift_analytics(db, current_user.org_id)
+
 

@@ -54,38 +54,8 @@ def demo_token(payload: DemoTokenRequest, db: Session = Depends(get_db)):
         }
     }
 
-# Registration endpoint
-class RegisterRequest(BaseModel):
-    email: str
-    password: str
-    full_name: str
-    role: str = "creator"
 
-@router.post("/register")
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    """Create a new user and return a JWT.
-    For demo purposes the organization is taken from the first existing org.
-    """
-    allowed_roles = {"admin", "creator", "reviewer"}
-    if payload.role not in allowed_roles:
-        raise HTTPException(status_code=400, detail="Invalid role")
-    if db.query(User).filter_by(email=payload.email).first():
-        raise HTTPException(status_code=409, detail="Email already registered")
-    org = db.query(Organization).first()
-    if not org:
-        raise HTTPException(status_code=500, detail="No organization found for registration")
-    user = User(
-        org_id=org.id,
-        email=payload.email,
-        full_name=payload.full_name,
-        password_hash=hash_password(payload.password),
-        role=payload.role,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    token = create_access_token(user.id, user.org_id, user.role)
-    return {"access_token": token, "token_type": "bearer", "user": {"id": str(user.id), "email": user.email, "full_name": user.full_name, "role": user.role, "org_id": str(user.org_id)}}
+
 
 
 @router.get("/me")
@@ -99,18 +69,17 @@ def me(current_user: User = Depends(get_current_user)):
         "org_id": str(current_user.org_id),
     }
 
-# Registration endpoint
+
 class RegisterRequest(BaseModel):
     email: str
     password: str
     full_name: str
     role: str = "creator"
 
+
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    """Create a new user and return a JWT.
-    For demo purposes the organization is taken from the first existing org.
-    """
+    """Create a new user and return a JWT."""
     allowed_roles = {"admin", "creator", "reviewer"}
     if payload.role not in allowed_roles:
         raise HTTPException(status_code=400, detail="Invalid role")
@@ -130,4 +99,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     token = create_access_token(user.id, user.org_id, user.role)
-    return {"access_token": token, "token_type": "bearer", "user": {"id": str(user.id), "email": user.email, "full_name": user.full_name, "role": user.role, "org_id": str(user.org_id)}}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "org_id": str(user.org_id),
+        }
+    }
+

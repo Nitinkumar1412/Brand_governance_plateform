@@ -1,0 +1,5 @@
+[
+  { "email": "admin@inkloom.test", "role": "admin" },
+  { "email": "creator@inkloom.test", "role": "creator" },
+  { "email": "reviewer@inkloom.test", "role": "reviewer" }
+]

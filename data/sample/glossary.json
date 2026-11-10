@@ -1,0 +1,14 @@
+[
+  { "term": "guaranteed", "kind": "forbidden", "replacement": "expected", "note": "Use evidence-based wording instead of absolute certainty." },
+  { "term": "best-in-class", "kind": "forbidden", "replacement": "high-performing", "note": "Avoid unverified comparison claims." },
+  { "term": "can't-miss", "kind": "forbidden", "replacement": "worth considering", "note": "This is promotional phrasing without proof." },
+  { "term": "always-on", "kind": "forbidden", "replacement": "continuous", "note": "Avoid implying unbounded reliability without evidence." },
+  { "term": "seamless", "kind": "approved", "replacement": null, "note": "Approved only when describing user flow with evidence." },
+  { "term": "insightful", "kind": "approved", "replacement": null, "note": "Approved descriptor for analysis and reporting." },
+  { "term": "brand-safe", "kind": "approved", "replacement": null, "note": "Approved term for governance-compliant content." },
+  { "term": "data-led", "kind": "approved", "replacement": null, "note": "Used for decisions backed by measured evidence." },
+  { "term": "Inkloom Max", "kind": "forbidden", "replacement": "Inkloom Pro 2", "note": "Legacy name; do not use in current communications." },
+  { "term": "unmatched", "kind": "forbidden", "replacement": "strong", "note": "Comparison wording is not approved without a benchmark." },
+  { "term": "effortless", "kind": "forbidden", "replacement": "easy to use", "note": "Use plain language unless the evidence supports the claim." },
+  { "term": "zero-risk", "kind": "forbidden", "replacement": "low-risk", "note": "Absolute risk statements require proof." }
+]

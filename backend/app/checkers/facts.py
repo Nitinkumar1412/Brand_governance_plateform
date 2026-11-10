@@ -152,7 +152,7 @@ Extract all factual claims as a JSON object matching this schema:
                         f"Unverified claim: No approved company fact exists for "
                         f"'{claim.entity}' attribute '{claim.attribute}'."
                     ),
-                    suggested_fix=None,
+                    suggested_fix=f"[Requires source citation: verified {claim.attribute} for {claim.entity}]",
                     fact_id=None,
                     citation=None,
                     status="open",
@@ -179,7 +179,7 @@ Extract all factual claims as a JSON object matching this schema:
                         f"Outdated claim: The approved fact for '{fact.entity} {fact.attribute}' "
                         f"expired on {fact.valid_to}."
                     ),
-                    suggested_fix=f"Review updated specifications for {fact.entity}.",
+                    suggested_fix=f"{fact.statement} (Updated spec)",
                     fact_id=fact.id,
                     citation=fact.statement,
                     status="open",
@@ -205,6 +205,13 @@ Extract all factual claims as a JSON object matching this schema:
                     if unit_mismatch:
                         err_msg.append(f"unit '{claim.unit}' does not match approved '{fact.unit}'")
 
+                    # Smart contextual replacement: if quoted_text has the number, swap it directly
+                    clean_target = f"{fact_val} {fact.unit or ''}".strip()
+                    if claim.quoted_text and str(claim.value_num) in claim.quoted_text:
+                        smart_fix = claim.quoted_text.replace(str(claim.value_num), str(fact_val))
+                    else:
+                        smart_fix = clean_target
+
                     findings.append(Finding(
                         org_id=org_id,
                         scan_job_id=scan_job_id,
@@ -218,7 +225,7 @@ Extract all factual claims as a JSON object matching this schema:
                         span_end=span_end,
                         quoted_text=claim.quoted_text,
                         explanation=f"Contradicted fact: {'; '.join(err_msg)}.",
-                        suggested_fix=f"{fact_val} {fact.unit or ''}".strip(),
+                        suggested_fix=smart_fix,
                         fact_id=fact.id,
                         citation=fact.statement,
                         status="open",
