@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, ArrowUpRight } from 'lucide-react';
 import type { DocumentListItem } from '../services/api';
 
 interface DocumentsListViewProps {
@@ -164,13 +164,14 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
               <th className="py-3 px-4">Version</th>
               <th className="py-3 px-4">Findings</th>
               <th className="py-3 px-4">Updated</th>
-              <th className="py-3 px-6">Creator</th>
+              <th className="py-3 px-4">Creator</th>
+              <th className="py-3 px-6 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
             {filteredDocs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-slate-400 text-sm">
+                <td colSpan={7} className="py-12 text-center text-slate-400 text-sm">
                   <FileText className="h-8 w-8 mx-auto text-slate-300 mb-2" />
                   No documents found in this category.
                 </td>
@@ -195,7 +196,19 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
                       : `${doc.open_findings} open of ${doc.total_findings}`}
                   </td>
                   <td className="py-3.5 px-4 text-xs text-slate-500">{formatRelativeTime(doc.updated_at)}</td>
-                  <td className="py-3.5 px-6 text-xs font-medium text-slate-700">{doc.creator_name}</td>
+                  <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{doc.creator_name}</td>
+                  <td className="py-3.5 px-6 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDocument(doc.id);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-[#006654] hover:text-white hover:border-[#006654] text-xs font-semibold text-slate-700 shadow-2xs transition-all group-hover:border-slate-300"
+                    >
+                      <span>Inspect & Review</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}

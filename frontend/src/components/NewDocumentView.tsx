@@ -77,12 +77,13 @@ export const NewDocumentView: React.FC<NewDocumentViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Back button */}
+      {/* Top Back Nav Button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-4"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 shadow-xs transition-all mb-6 group cursor-pointer"
       >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Documents</span>
+        <ArrowLeft className="h-4 w-4 text-slate-500 group-hover:-translate-x-0.5 transition-transform" />
+        <span>← Back to Documents</span>
       </button>
 
       {/* Heading */}
@@ -129,16 +130,16 @@ export const NewDocumentView: React.FC<NewDocumentViewProps> = ({
               className="hidden"
             />
 
-            <div className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#006654]">
+            <div className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/50 flex items-center justify-between gap-3 overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#006654]">
                   <FileText className="h-5 w-5" />
                 </div>
-                <div>
-                  <div className="text-xs font-semibold text-slate-900">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold text-slate-900 truncate" title={file ? file.name : 'No file selected'}>
                     {file ? file.name : 'No file selected'}
                   </div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-slate-500 truncate">
                     {file
                       ? `${file.name.endsWith('.pdf') ? 'PDF document' : file.name.endsWith('.docx') ? 'Word document' : 'Text file'} · ${blocksCount > 0 ? `${blocksCount} blocks found` : 'Ready to scan'}`
                       : 'Upload a TXT, DOCX or PDF file'}
@@ -149,7 +150,7 @@ export const NewDocumentView: React.FC<NewDocumentViewProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors shadow-sm"
+                className="shrink-0 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors shadow-sm"
               >
                 {file ? 'Replace file' : 'Select file'}
               </button>
@@ -199,7 +200,7 @@ export const NewDocumentView: React.FC<NewDocumentViewProps> = ({
             <span className="text-xs font-mono font-bold text-slate-700">{scanProgress}%</span>
           </div>
 
-          <div className="text-xs text-slate-600 mb-2 font-medium">
+          <div className="text-xs text-slate-600 mb-2 font-medium truncate" title={isScanning ? `Scanning ${file?.name || 'document'}` : file ? `Ready to scan ${file.name}` : 'Awaiting document...'}>
             {isScanning ? `Scanning ${file?.name || 'document'}` : file ? `Ready to scan ${file.name}` : 'Awaiting document...'}
           </div>
 

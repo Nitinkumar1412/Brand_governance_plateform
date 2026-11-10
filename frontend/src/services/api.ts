@@ -81,6 +81,7 @@ export interface BrandDrift {
   summary: {
     total_violations_flagged: number;
     violations_by_layer: Record<string, number>;
+    violations_by_severity?: Record<string, number>;
     reviewer_decisions: Record<string, number>;
     brand_alignment_rate: number;
   };
@@ -95,6 +96,17 @@ export interface BrandDrift {
     title: string;
     rejection_rate: string;
     suggestion: string;
+  }>;
+  recent_findings?: Array<{
+    id: string;
+    layer: 'terminology' | 'facts' | 'tone';
+    severity: 'low' | 'medium' | 'high';
+    status: 'open' | 'accepted' | 'edited' | 'rejected';
+    quoted_text?: string;
+    explanation?: string;
+    suggested_fix?: string;
+    final_text?: string;
+    created_at?: string;
   }>;
 }
 
