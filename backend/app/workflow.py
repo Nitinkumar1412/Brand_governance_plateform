@@ -32,7 +32,7 @@ class InvalidState(Exception):
     pass
 
 
-DECISIONS = ("accepted", "edited", "rejected")
+DECISIONS = ("accepted", "edited", "rejected", "open")
 
 
 def _now() -> datetime:
@@ -265,14 +265,22 @@ def decide_finding(
 
     previous = finding.status
     finding.status = decision
-    finding.final_text = final_text.strip() if decision == "edited" and final_text else None
-    finding.decided_by = user_id
-    finding.decided_at = _now()
+    if decision == "open":
+        finding.final_text = None
+        finding.decided_by = None
+        finding.decided_at = None
+        action_name = "finding.undone"
+    else:
+        finding.final_text = final_text.strip() if decision == "edited" and final_text else None
+        finding.decided_by = user_id
+        finding.decided_at = _now()
+        action_name = f"finding.{decision}"
+
     write_audit(
         db,
         org_id,
         user_id,
-        f"finding.{decision}",
+        action_name,
         "finding",
         finding.id,
         {"document_id": str(doc.id), "previous_status": previous, "layer": finding.layer},
