@@ -47,6 +47,8 @@ def check_terminology(
                 if t.note:
                     explanation += f" ({t.note})"
 
+                clean_fix = t.replacement or f"[Remove or rephrase: {matched_word}]"
+
                 finding = Finding(
                     org_id=org_id,
                     scan_job_id=scan_job_id,
@@ -59,7 +61,7 @@ def check_terminology(
                     span_end=end,
                     quoted_text=matched_word,
                     explanation=explanation,
-                    suggested_fix=t.replacement,
+                    suggested_fix=clean_fix,
                     glossary_term_id=t.id,
                     citation=f"Glossary term: {t.term}",
                     status="open",

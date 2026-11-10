@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_roles
 from app.db import get_db, scoped
 from app.embeddings import embed_text
 from app.models import ApprovedFact, GlossaryTerm, GuidelineDocument, GuidelineRule, User
@@ -112,6 +112,17 @@ def create_glossary_term(
 
 
 # --- Facts ---
+class CreateFactRequest(BaseModel):
+    entity: str
+    attribute: str
+    statement: str
+    value_num: float | None = None
+    value_text: str | None = None
+    unit: str | None = None
+    source_name: str = "Brand Guidelines"
+    source_page: int | None = 1
+
+
 @router.get("/facts")
 def list_facts(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     facts = db.execute(scoped(ApprovedFact, current_user.org_id).order_by(ApprovedFact.entity)).scalars().all()
@@ -128,4 +139,34 @@ def list_facts(current_user: User = Depends(get_current_user), db: Session = Dep
         }
         for f in facts
     ]
+
+
+@router.post("/facts")
+def create_fact(
+    payload: CreateFactRequest,
+    current_user: User = Depends(require_roles(["admin"])),
+    db: Session = Depends(get_db)
+):
+    """Admin-only endpoint to create verified facts for AI scan comparisons."""
+    fact = ApprovedFact(
+        org_id=current_user.org_id,
+        entity=payload.entity.strip(),
+        attribute=payload.attribute.strip(),
+        statement=payload.statement.strip(),
+        value_num=payload.value_num,
+        value_text=payload.value_text.strip() if payload.value_text else None,
+        unit=payload.unit.strip() if payload.unit else None,
+        source_name=payload.source_name.strip() if payload.source_name else "Brand Guidelines",
+        source_page=payload.source_page
+    )
+    db.add(fact)
+    db.commit()
+    db.refresh(fact)
+    return {
+        "id": str(fact.id),
+        "entity": fact.entity,
+        "attribute": fact.attribute,
+        "statement": fact.statement
+    }
+
 

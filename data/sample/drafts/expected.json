@@ -1,0 +1,8 @@
+{
+  "launch_brief.txt": ["forbidden_term", "wrong_number", "off_tone"],
+  "pricing_sheet.txt": ["wrong_unit", "unsupported_claim", "off_tone"],
+  "campaign_copy.txt": ["forbidden_term", "unsupported_claim"],
+  "feature_memo.txt": ["wrong_number", "unsupported_claim"],
+  "injection_try.txt": ["prompt_injection", "forbidden_term"],
+  "outdated_notice.txt": ["outdated_fact", "wrong_number"]
+}

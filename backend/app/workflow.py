@@ -195,20 +195,48 @@ def finish_scan(
 
 
 def scan_counts(db: Session, org_id: UUID, scan_job_id: UUID) -> dict[str, Any]:
-    """Numbers for GET /scans/{id}: total, open, and findings per layer."""
+    """Numbers for GET /scans/{id}: total, open, findings per layer, and compliance health score."""
     rows = db.execute(
-        select(Finding.layer, Finding.status, func.count())
+        select(Finding.layer, Finding.status, Finding.severity, func.count())
         .where(Finding.org_id == org_id, Finding.scan_job_id == scan_job_id)
-        .group_by(Finding.layer, Finding.status)
+        .group_by(Finding.layer, Finding.status, Finding.severity)
     ).all()
     by_layer: dict[str, int] = {}
+    by_severity: dict[str, int] = {"high": 0, "medium": 0, "low": 0}
     total = open_ = 0
-    for layer, status, n in rows:
+    for layer, status, severity, n in rows:
         by_layer[layer] = by_layer.get(layer, 0) + n
+        sev_key = (severity or "medium").lower()
+        by_severity[sev_key] = by_severity.get(sev_key, 0) + n
         total += n
         if status == "open":
             open_ += n
-    return {"total": total, "open": open_, "by_layer": by_layer}
+
+    # Dynamic Brand Compliance Score (0 to 100)
+    penalty = (by_severity.get("high", 0) * 15) + (by_severity.get("medium", 0) * 8) + (by_severity.get("low", 0) * 3)
+    score = max(0, min(100, 100 - penalty))
+
+    if score >= 90:
+        grade, risk_level = "A", "low"
+    elif score >= 75:
+        grade, risk_level = "B", "moderate"
+    elif score >= 50:
+        grade, risk_level = "C", "high"
+    else:
+        grade, risk_level = "F", "critical"
+
+    return {
+        "total": total,
+        "open": open_,
+        "by_layer": by_layer,
+        "by_severity": by_severity,
+        "compliance": {
+            "score": score,
+            "grade": grade,
+            "risk_level": risk_level,
+            "is_publishable": score >= 85 and open_ == 0
+        }
+    }
 
 
 # --- review --------------------------------------------------------------------------
@@ -340,3 +368,72 @@ def rule_stats(db: Session, org_id: UUID) -> list[dict[str, Any]]:
         {**r, "reject_rate_pct": float(r["reject_rate_pct"]) if r["reject_rate_pct"] is not None else None}
         for r in rows
     ]
+
+
+def brand_drift_analytics(db: Session, org_id: UUID) -> dict[str, Any]:
+    """Executive insights: brand health drift, top violated rules (hall of shame), and false-positive fatigue."""
+    # 1. Total findings breakdown across all historical scans
+    stats_query = db.execute(
+        select(
+            Finding.layer,
+            Finding.status,
+            Finding.severity,
+            func.count()
+        )
+        .where(Finding.org_id == org_id)
+        .group_by(Finding.layer, Finding.status, Finding.severity)
+    ).all()
+
+    total_violations = 0
+    layer_counts = {"terminology": 0, "facts": 0, "tone": 0}
+    status_counts = {"open": 0, "accepted": 0, "edited": 0, "rejected": 0}
+
+    for layer, status, severity, count in stats_query:
+        total_violations += count
+        layer_counts[layer] = layer_counts.get(layer, 0) + count
+        status_counts[status] = status_counts.get(status, 0) + count
+
+    # 2. Top Violated Rules (Hall of Shame)
+    rules = rule_stats(db, org_id)
+    top_violated = rules[:5] if rules else []
+
+    # 3. Rules with highest Reviewer Rejection (Rule Fatigue / False-positive alerts)
+    fatigue_rules = [
+        r for r in rules
+        if r.get("reject_rate_pct") is not None and r["reject_rate_pct"] > 35 and r.get("findings", 0) >= 2
+    ]
+
+    # 4. Overall Brand Health Index
+    total_decided = status_counts["accepted"] + status_counts["edited"] + status_counts["rejected"]
+    acceptance_rate = (
+        round(((status_counts["accepted"] + status_counts["edited"]) / total_decided) * 100, 1)
+        if total_decided > 0 else 100.0
+    )
+
+    return {
+        "summary": {
+            "total_violations_flagged": total_violations,
+            "violations_by_layer": layer_counts,
+            "reviewer_decisions": status_counts,
+            "brand_alignment_rate": acceptance_rate,
+        },
+        "hall_of_shame": [
+            {
+                "rule_code": r.get("code"),
+                "title": r.get("title"),
+                "violation_count": r.get("findings", 0),
+                "rejection_rate": f"{(r.get('reject_rate_pct') or 0.0):.1f}%"
+            }
+            for r in top_violated
+        ],
+        "rule_fatigue_alerts": [
+            {
+                "rule_code": r.get("code"),
+                "title": r.get("title"),
+                "rejection_rate": f"{(r.get('reject_rate_pct') or 0.0):.1f}%",
+                "suggestion": "Reviewer rejection is high. Consider updating or softening this guideline."
+            }
+            for r in fatigue_rules
+        ]
+    }
+

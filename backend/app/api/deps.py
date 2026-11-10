@@ -15,10 +15,13 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Organization, User
+from dotenv import load_dotenv
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "inkloom-super-secret-jwt-key-2026-audit-governance")
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24
+load_dotenv()
+
+JWT_SECRET = os.getenv("JWT_SECRET", "inkloom-super-secret-jwt-key-2026-audit-governance")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
 security_bearer = HTTPBearer(auto_error=False)
 

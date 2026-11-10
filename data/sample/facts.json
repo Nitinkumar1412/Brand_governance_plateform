@@ -1,0 +1,109 @@
+[
+  {
+    "entity": "Inkloom Pro 2",
+    "attribute": "battery life",
+    "value_num": 42,
+    "unit": "hours",
+    "statement": "Inkloom Pro 2 lasts 42 hours on a single charge.",
+    "source_name": "Product spec sheet",
+    "source_page": 4,
+    "valid_from": "2025-01-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Inkloom Pro 2",
+    "attribute": "price",
+    "value_num": 499,
+    "unit": "USD",
+    "statement": "Inkloom Pro 2 is priced at $499 in the standard configuration.",
+    "source_name": "Pricing guide",
+    "source_page": 2,
+    "valid_from": "2025-02-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Inkloom Studio",
+    "attribute": "seat count",
+    "value_num": 12,
+    "unit": "seats",
+    "statement": "Inkloom Studio supports 12 user seats in the standard team plan.",
+    "source_name": "Package comparison",
+    "source_page": 11,
+    "valid_from": "2025-03-15",
+    "valid_to": "2027-12-31"
+  },
+  {
+    "entity": "Nimbus AI",
+    "attribute": "response time",
+    "value_num": 2.4,
+    "unit": "seconds",
+    "statement": "Nimbus AI delivers summaries in under 2.4 seconds for a 400-word draft.",
+    "source_name": "Benchmark report",
+    "source_page": 7,
+    "valid_from": "2025-01-12",
+    "valid_to": null
+  },
+  {
+    "entity": "Brand Guard",
+    "attribute": "coverage",
+    "value_text": "marketing channels",
+    "statement": "Brand Guard checks documents across email, social, and PDF marketing channels.",
+    "source_name": "Feature overview",
+    "source_page": 1,
+    "valid_from": "2025-05-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Brand Guard",
+    "attribute": "language support",
+    "value_text": "English, Spanish, and French",
+    "statement": "Brand Guard supports English, Spanish, and French copy review.",
+    "source_name": "Support matrix",
+    "source_page": 3,
+    "valid_from": "2025-02-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Inkloom Pro 2",
+    "attribute": "weight",
+    "value_num": 1.2,
+    "unit": "kg",
+    "statement": "Inkloom Pro 2 weighs 1.2 kg without accessories.",
+    "source_name": "Technical spec",
+    "source_page": 9,
+    "valid_from": "2025-01-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Brand Guard",
+    "attribute": "review turnaround",
+    "value_num": 5,
+    "unit": "minutes",
+    "statement": "Most Brand Guard reviews finish in under 5 minutes for short marketing briefs.",
+    "source_name": "Customer dashboard report",
+    "source_page": 5,
+    "valid_from": "2025-04-10",
+    "valid_to": null
+  },
+  {
+    "entity": "Inkloom Pro 2",
+    "attribute": "screen size",
+    "value_num": 14,
+    "unit": "inches",
+    "statement": "Inkloom Pro 2 includes a 14-inch display.",
+    "source_name": "Hardware overview",
+    "source_page": 2,
+    "valid_from": "2025-02-01",
+    "valid_to": null
+  },
+  {
+    "entity": "Brand Guard",
+    "attribute": "audit status",
+    "value_text": "human-reviewed",
+    "statement": "Every flagged item is reviewed by a human before final approval.",
+    "source_name": "Governance process",
+    "source_page": 12,
+    "valid_from": "2025-03-01",
+    "valid_to": null
+  }
+]
