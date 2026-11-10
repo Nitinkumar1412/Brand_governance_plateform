@@ -410,10 +410,45 @@ def brand_drift_analytics(db: Session, org_id: UUID) -> dict[str, Any]:
         if total_decided > 0 else 100.0
     )
 
+    # 5. Severity distribution
+    severity_query = db.execute(
+        select(Finding.severity, func.count())
+        .where(Finding.org_id == org_id)
+        .group_by(Finding.severity)
+    ).all()
+    severity_counts = {"low": 0, "medium": 0, "high": 0}
+    for sev, cnt in severity_query:
+        if sev in severity_counts:
+            severity_counts[sev] = cnt
+
+    # 6. Recent Findings feed (top 15 recent)
+    recent_findings_raw = db.execute(
+        select(Finding)
+        .where(Finding.org_id == org_id)
+        .order_by(Finding.created_at.desc())
+        .limit(15)
+    ).scalars().all()
+
+    recent_findings = [
+        {
+            "id": str(f.id),
+            "layer": f.layer,
+            "severity": f.severity,
+            "status": f.status,
+            "quoted_text": f.quoted_text,
+            "explanation": f.explanation,
+            "suggested_fix": f.suggested_fix,
+            "final_text": f.final_text,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in recent_findings_raw
+    ]
+
     return {
         "summary": {
             "total_violations_flagged": total_violations,
             "violations_by_layer": layer_counts,
+            "violations_by_severity": severity_counts,
             "reviewer_decisions": status_counts,
             "brand_alignment_rate": acceptance_rate,
         },
@@ -434,6 +469,7 @@ def brand_drift_analytics(db: Session, org_id: UUID) -> dict[str, Any]:
                 "suggestion": "Reviewer rejection is high. Consider updating or softening this guideline."
             }
             for r in fatigue_rules
-        ]
+        ],
+        "recent_findings": recent_findings
     }
 

@@ -149,10 +149,10 @@ Extract all factual claims as a JSON object matching this schema:
                     span_end=span_end,
                     quoted_text=claim.quoted_text,
                     explanation=(
-                        f"Unverified claim: No approved company fact exists for "
+                        f"Unverified claim: No official company fact is registered for "
                         f"'{claim.entity}' attribute '{claim.attribute}'."
                     ),
-                    suggested_fix=f"[Requires source citation: verified {claim.attribute} for {claim.entity}]",
+                    suggested_fix=f"Pending official specification for {claim.entity} ({claim.attribute}). Please confirm with Admin or cite verified source.",
                     fact_id=None,
                     citation=None,
                     status="open",
