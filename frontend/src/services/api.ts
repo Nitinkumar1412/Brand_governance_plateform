@@ -1,4 +1,5 @@
 import axios from 'axios';
+import.meta.env.API_BASE_URL
 
 const API_BASE = (
   import.meta.env.API_BASE_URL || 'http://localhost:8000/api/v1'
