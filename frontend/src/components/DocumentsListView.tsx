@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, FileText, ArrowUpRight } from 'lucide-react';
+import { Plus, FileText, ArrowUpRight, Loader2 } from 'lucide-react';
 import type { DocumentListItem } from '../services/api';
 
 interface DocumentsListViewProps {
   documents: DocumentListItem[];
-  onOpenDocument: (docId: string) => void;
+  onOpenDocument: (docId: string) => Promise<void> | void;
   onNewDocument: () => void;
   canCreate: boolean;
 }
@@ -16,6 +16,7 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
   canCreate,
 }) => {
   const [filter, setFilter] = useState<'all' | 'draft' | 'in_review' | 'changes_requested' | 'approved'>('all');
+  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
 
   // Metric counts
   const waitingForReview = documents.filter((d) => d.status === 'in_review').length;
@@ -27,6 +28,18 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
     if (filter === 'all') return true;
     return d.status === filter;
   });
+
+  const handleDocClick = async (docId: string) => {
+    if (openingDocId) return; // Prevent concurrent requests
+    setOpeningDocId(docId);
+    try {
+      await onOpenDocument(docId);
+    } catch (err) {
+      console.error('Error opening document:', err);
+    } finally {
+      setOpeningDocId(null);
+    }
+  };
 
   const getStatusBadge = (doc: DocumentListItem) => {
     if (doc.status === 'scanning') {
@@ -155,7 +168,14 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
       </div>
 
       {/* Documents Table */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative">
+        {/* Subtle Top Loading Line when a document is opening */}
+        {openingDocId && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-100 overflow-hidden z-10">
+            <div className="h-full bg-[#006654] animate-pulse w-full" />
+          </div>
+        )}
+
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
@@ -177,40 +197,58 @@ export const DocumentsListView: React.FC<DocumentsListViewProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredDocs.map((doc) => (
-                <tr
-                  key={doc.id}
-                  onClick={() => onOpenDocument(doc.id)}
-                  className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
-                >
-                  <td className="py-3.5 px-6 font-semibold text-slate-900 group-hover:text-[#006654] transition-colors">
-                    {doc.title}
-                  </td>
-                  <td className="py-3.5 px-4">{getStatusBadge(doc)}</td>
-                  <td className="py-3.5 px-4 text-xs font-mono text-slate-500">v{doc.version_no}</td>
-                  <td className="py-3.5 px-4 text-xs text-slate-600">
-                    {doc.status === 'scanning'
-                      ? 'In progress'
-                      : doc.total_findings === 0 && doc.status === 'draft'
-                      ? 'Not scanned yet'
-                      : `${doc.open_findings} open of ${doc.total_findings}`}
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-slate-500">{formatRelativeTime(doc.updated_at)}</td>
-                  <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{doc.creator_name}</td>
-                  <td className="py-3.5 px-6 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenDocument(doc.id);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-[#006654] hover:text-white hover:border-[#006654] text-xs font-semibold text-slate-700 shadow-2xs transition-all group-hover:border-slate-300"
-                    >
-                      <span>Inspect & Review</span>
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))
+              filteredDocs.map((doc) => {
+                const isOpeningThis = openingDocId === doc.id;
+
+                return (
+                  <tr
+                    key={doc.id}
+                    onClick={() => handleDocClick(doc.id)}
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                  >
+                    <td className="py-3.5 px-6 font-semibold text-slate-900 group-hover:text-[#006654] transition-colors">
+                      {doc.title}
+                    </td>
+                    <td className="py-3.5 px-4">{getStatusBadge(doc)}</td>
+                    <td className="py-3.5 px-4 text-xs font-mono text-slate-500">v{doc.version_no}</td>
+                    <td className="py-3.5 px-4 text-xs text-slate-600">
+                      {doc.status === 'scanning'
+                        ? 'In progress'
+                        : doc.total_findings === 0 && doc.status === 'draft'
+                        ? 'Not scanned yet'
+                        : `${doc.open_findings} open of ${doc.total_findings}`}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs text-slate-500">{formatRelativeTime(doc.updated_at)}</td>
+                    <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{doc.creator_name}</td>
+                    <td className="py-3.5 px-6 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDocClick(doc.id);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs font-semibold shadow-2xs transition-all ${
+                          isOpeningThis
+                            ? 'bg-[#006654] text-white border-[#006654]'
+                            : 'border-slate-200 bg-white hover:bg-[#006654] hover:text-white hover:border-[#006654] text-slate-700 group-hover:border-slate-300'
+                        }`}
+                      >
+                        {isOpeningThis ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                            <span>Opening...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Inspect & Review</span>
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
