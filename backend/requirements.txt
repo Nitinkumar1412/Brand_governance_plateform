@@ -1,19 +1,25 @@
-# Core API Framework 
-fastapi==0.115.4 
-uvicorn[standard]==0.32.0 
-pydantic==2.9.2 
-pydantic-settings==2.6.1 
+# Core API Framework
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+pydantic-settings==2.6.1
 python-multipart==0.0.17
 
-# Database & Vectors (PostgreSQL + pgvector on Neon)
-sqlalchemy==2.0.36 
-psycopg2-binary==2.9.10 
+# Auth / env / HTTP
+PyJWT==2.10.1
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# Database & vectors
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.4
 pgvector==0.3.6
 
-#Document parsing and media processing
-pymupdf==1.24.14 # PDF parsing (PyMuPDF) 
-python-docx==1.1.2 # Word document parsing 
-pillow==11.0.0    # Image handling 
-opencv-python-headless==4.10.0.84 # Color & WCAG contrast math
+# Embeddings
+fastembed==0.7.0
 
-dotenv==0.9.9
+# Document parsing & media processing
+pymupdf==1.24.14
+python-docx==1.1.2
+pillow==11.0.0
+opencv-python-headless==4.10.0.84
