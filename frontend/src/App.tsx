@@ -96,10 +96,10 @@ export function App() {
     }
   };
 
-  // Handle finding decision (Accept, Edit, Reject)
+  // Handle finding decision (Accept, Edit, Reject, Undo/Reopen) - Optimistic instant 0ms update!
   const handleDecideFinding = async (
     findingId: string,
-    decision: 'accepted' | 'edited' | 'rejected',
+    decision: 'accepted' | 'edited' | 'rejected' | 'open',
     finalText?: string
   ) => {
     if (!currentUser || (currentUser.role !== 'reviewer' && currentUser.role !== 'admin')) {
@@ -107,76 +107,123 @@ export function App() {
       return;
     }
 
+    // 1. Snapshot previous state for rollback if network fails
+    const prevFindings = [...currentFindings];
+    const prevDoc = currentDocDetail;
+
+    const targetFinding = currentFindings.find((f) => f.id === findingId);
+    if (!targetFinding) return;
+
+    const originalText = targetFinding.quoted_text;
+    const currentAppliedText = targetFinding.final_text || targetFinding.suggested_fix;
+
+    // 2. INSTANT OPTIMISTIC UI UPDATE (0ms delay): Update finding status immediately
+    setCurrentFindings((prev) =>
+      prev.map((f) =>
+        f.id === findingId
+          ? {
+              ...f,
+              status: decision,
+              final_text: decision === 'open' ? undefined : (finalText !== undefined ? finalText : f.final_text),
+            }
+          : f
+      )
+    );
+
+    // 3. Document Viewer Text Replacement / Reversion:
+    if (originalText && targetFinding.block_id) {
+      if (decision === 'open') {
+        // Revert applied fix back to original text
+        const textToRevert = currentAppliedText || finalText;
+        if (textToRevert) {
+          setCurrentDocDetail((prevDocState) => {
+            if (!prevDocState) return prevDocState;
+            return {
+              ...prevDocState,
+              blocks: prevDocState.blocks.map((b) => {
+                if (b.id === targetFinding.block_id && b.content.includes(textToRevert)) {
+                  return {
+                    ...b,
+                    content: b.content.replace(textToRevert, originalText),
+                  };
+                }
+                return b;
+              }),
+            };
+          });
+        }
+      } else if (decision === 'accepted' || decision === 'edited') {
+        const replacement = finalText || targetFinding.suggested_fix;
+        if (replacement) {
+          setCurrentDocDetail((prevDocState) => {
+            if (!prevDocState) return prevDocState;
+            return {
+              ...prevDocState,
+              blocks: prevDocState.blocks.map((b) => {
+                if (b.id === targetFinding.block_id && b.content.includes(originalText)) {
+                  return {
+                    ...b,
+                    content: b.content.replace(originalText, replacement),
+                  };
+                }
+                return b;
+              }),
+            };
+          });
+        }
+      }
+    }
+
+    // 4. INSTANT TOAST FEEDBACK
+    showToast(
+      decision === 'accepted'
+        ? `✓ Accepted: "${finalText || targetFinding.suggested_fix}"`
+        : decision === 'edited'
+        ? `✓ Edited: "${finalText}"`
+        : decision === 'rejected'
+        ? `Dismissed / Rejected finding`
+        : `↩ Undone: Reverted to open`
+    );
+
+    // 5. Background sync with backend API
     try {
       await decideFinding(findingId, decision, finalText);
-
-      setCurrentFindings((prev) =>
-        prev.map((f) =>
-          f.id === findingId
-            ? { ...f, status: decision, final_text: finalText || f.final_text }
-            : f
-        )
-      );
-
-      // Replace text inline in currentDocDetail if accepted or edited
-      const targetFinding = currentFindings.find((f) => f.id === findingId);
-      const replacement = finalText || targetFinding?.suggested_fix;
-      const original = targetFinding?.quoted_text;
-
-      if (replacement && original && targetFinding?.block_id) {
-        setCurrentDocDetail((prevDoc) => {
-          if (!prevDoc) return prevDoc;
-          return {
-            ...prevDoc,
-            blocks: prevDoc.blocks.map((b) => {
-              if (b.id === targetFinding.block_id && b.content.includes(original)) {
-                return {
-                  ...b,
-                  content: b.content.replace(original, replacement),
-                };
-              }
-              return b;
-            }),
-          };
-        });
-      }
-
-      showToast(
-        decision === 'accepted'
-          ? `✓ Accepted: "${replacement}"`
-          : decision === 'edited'
-          ? `✓ Edited: "${finalText}"`
-          : `Dismissed flag`
-      );
     } catch (e) {
-      console.error('Failed to decide finding:', e);
-      showToast('Failed to update finding');
+      console.error('Failed to decide finding on server:', e);
+      // Rollback on failure
+      setCurrentFindings(prevFindings);
+      if (prevDoc) setCurrentDocDetail(prevDoc);
+      showToast('Failed to save finding decision on server, rolled back');
     }
   };
 
   // Handle request changes (Reviewer / Admin)
   const handleRequestChanges = async () => {
     if (!selectedDocId) return;
+    setCurrentDocDetail((prev) => prev ? { ...prev, status: 'changes_requested' } : prev);
+    showToast('✓ Document status updated: Changes requested');
     try {
       const res = await requestChanges(selectedDocId);
       setCurrentDocDetail((prev) => prev ? { ...prev, status: res.status } : prev);
-      showToast('✓ Document status updated: Changes requested');
       fetchDocuments();
     } catch (err: any) {
       showToast(err?.response?.data?.detail || 'Failed to request changes');
+      fetchDocuments();
     }
   };
 
   // Handle approve document (Reviewer / Admin)
   const handleApproveDocument = async () => {
     if (!selectedDocId) return;
+    setCurrentDocDetail((prev) => prev ? { ...prev, status: 'approved' } : prev);
+    showToast('🎉 Document approved successfully!');
     try {
       const res = await approveDocument(selectedDocId);
       setCurrentDocDetail((prev) => prev ? { ...prev, status: res.status } : prev);
-      showToast('🎉 Document approved successfully!');
       fetchDocuments();
     } catch (err: any) {
       showToast(err?.response?.data?.detail || 'All findings must be decided before approving.');
+      fetchDocuments();
     }
   };
 

@@ -90,7 +90,7 @@ def get_findings(document_id: UUID, current_user: User = Depends(get_current_use
 
 
 class DecisionRequest(BaseModel):
-    decision: str  # accepted | edited | rejected
+    decision: str  # accepted | edited | rejected | open
     final_text: str | None = None
 
 

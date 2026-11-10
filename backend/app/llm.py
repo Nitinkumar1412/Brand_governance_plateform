@@ -5,18 +5,38 @@ Enforces Rule 5 (prompt-injection defense) and Rule 6 (one call_llm wrapper, cac
 
 import hashlib
 import json
+import logging
 import os
 from typing import Any, TypeVar
+from dotenv import load_dotenv
 import httpx
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
 from app.models import LlmCache
 
+# Ensure .env is always loaded immediately when llm is imported anywhere
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
 T = TypeVar("T", bound=BaseModel)
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+
+
+def _get_gemini_key() -> str:
+    """Lazy read so dynamic changes to env or load_dotenv() are always captured."""
+    return os.environ.get("GEMINI_API_KEY", "").strip()
+
+
+def _get_groq_key() -> str:
+    """Lazy read so dynamic changes to env or load_dotenv() are always captured."""
+    return os.environ.get("GROQ_API_KEY", "").strip()
+
+
+# Backward compatibility properties
+GEMINI_API_KEY = _get_gemini_key()
+GROQ_API_KEY = _get_groq_key()
 
 
 def _hash_key(provider: str, model: str, prompt: str) -> str:
@@ -46,7 +66,11 @@ def _save_to_cache(db: Session, org_id: Any, cache_key: str, provider: str, mode
 
 # --- Provider 1: Gemini (Primary) ---
 def _call_gemini(prompt: str, system_instruction: str = "") -> dict[str, Any]:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
+    key = _get_gemini_key()
+    if not key:
+        raise ValueError("GEMINI_API_KEY is not configured")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"response_mime_type": "application/json"}
@@ -54,7 +78,7 @@ def _call_gemini(prompt: str, system_instruction: str = "") -> dict[str, Any]:
     if system_instruction:
         payload["system_instruction"] = {"parts": [{"text": system_instruction}]}
 
-    with httpx.Client(timeout=20.0) as client:
+    with httpx.Client(timeout=25.0) as client:
         res = client.post(url, json=payload)
         res.raise_for_status()
         data = res.json()
@@ -64,20 +88,25 @@ def _call_gemini(prompt: str, system_instruction: str = "") -> dict[str, Any]:
 
 # --- Provider 2: Groq (Fallback) ---
 def _call_groq(prompt: str, system_instruction: str = "") -> dict[str, Any]:
+    key = _get_groq_key()
+    if not key:
+        raise ValueError("GROQ_API_KEY is not configured")
+
     url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+    headers = {"Authorization": f"Bearer {key}"}
     messages = []
     if system_instruction:
         messages.append({"role": "system", "content": system_instruction})
     messages.append({"role": "user", "content": prompt})
 
+    # Use active open-weight flagship on Groq (llama-3.3-70b was decommissioned on Groq)
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "messages": messages,
         "response_format": {"type": "json_object"}
     }
 
-    with httpx.Client(timeout=20.0) as client:
+    with httpx.Client(timeout=25.0) as client:
         res = client.post(url, headers=headers, json=payload)
         res.raise_for_status()
         data = res.json()
@@ -88,9 +117,10 @@ def _call_groq(prompt: str, system_instruction: str = "") -> dict[str, Any]:
 # --- Mock Provider for Tests / Offline ---
 def _call_mock(prompt: str) -> dict[str, Any]:
     """Offline deterministic mock for testing without API keys."""
-    if "Extract numerical claims" in prompt:
+    p_lower = prompt.lower()
+    if "extract numerical claims" in p_lower or "claims" in p_lower:
         return {"claims": []}
-    if "Check tone" in prompt:
+    if "check tone" in p_lower or "guideline" in p_lower or "tone" in p_lower or "draft" in p_lower:
         return {"flags": []}
     return {}
 
@@ -111,10 +141,18 @@ def call_llm(
     """
     llm_info = {"provider": None, "model": None, "cached": False, "degraded": False}
 
+    gemini_key = _get_gemini_key()
+    groq_key = _get_groq_key()
+
     # 1. Offline or Mock Mode
-    if mock or os.environ.get("ENVIRONMENT") == "test" or not (GEMINI_API_KEY or GROQ_API_KEY):
+    if mock or os.environ.get("ENVIRONMENT") == "test" or not (gemini_key or groq_key):
         llm_info.update({"provider": "mock", "model": "test-mock"})
         result = _call_mock(prompt)
+        if schema:
+            try:
+                return schema.model_validate(result), llm_info
+            except Exception:
+                return result, llm_info
         return result, llm_info
 
     # 2. Check Cache
@@ -123,25 +161,29 @@ def call_llm(
         cached_result = _get_from_cache(db, org_id, cache_key)
         if cached_result is not None:
             llm_info.update({"provider": "cache", "model": "cache", "cached": True})
+            if schema:
+                try:
+                    return schema.model_validate(cached_result), llm_info
+                except Exception:
+                    return cached_result, llm_info
             return cached_result, llm_info
 
     # 3. Try Primary (Gemini)
     raw_json = None
-    if GEMINI_API_KEY:
+    if gemini_key:
         try:
             raw_json = _call_gemini(prompt, system_instruction)
-            llm_info.update({"provider": "gemini", "model": "gemini-2.0-flash-lite"})
+            llm_info.update({"provider": "gemini", "model": "gemini-3.5-flash-lite"})
         except Exception as e:
-            # Gemini failed, fall through to Groq
-            pass
+            logger.warning(f"Gemini call failed, falling back to Groq: {e}")
 
     # 4. Try Fallback (Groq)
-    if raw_json is None and GROQ_API_KEY:
+    if raw_json is None and groq_key:
         try:
             raw_json = _call_groq(prompt, system_instruction)
-            llm_info.update({"provider": "groq", "model": "llama-3.3-70b-versatile"})
+            llm_info.update({"provider": "groq", "model": "openai/gpt-oss-120b"})
         except Exception as e:
-            pass
+            logger.warning(f"Groq fallback failed: {e}")
 
     # 5. Degraded Mode (Both failed)
     if raw_json is None:
@@ -155,8 +197,13 @@ def call_llm(
             if db and org_id:
                 _save_to_cache(db, org_id, cache_key, llm_info["provider"], llm_info["model"], raw_json)
             return validated, llm_info
-        except ValidationError:
-            # If schema validation fails, degrade safely instead of crashing
+        except ValidationError as ve:
+            logger.warning(f"Schema validation warning: {ve}. Attempting fallback to raw dict.")
+            # If raw_json is already a dict (e.g. contains flags or claims), return it rather than returning None
+            if isinstance(raw_json, dict):
+                if db and org_id:
+                    _save_to_cache(db, org_id, cache_key, llm_info["provider"], llm_info["model"], raw_json)
+                return raw_json, llm_info
             llm_info["degraded"] = True
             return None, llm_info
 

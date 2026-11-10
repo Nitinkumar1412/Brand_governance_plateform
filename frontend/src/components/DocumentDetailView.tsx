@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, RotateCcw, Download, Send, History, Sparkles, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Check, RotateCcw, Download, Send, History, Sparkles, PlusCircle, X } from 'lucide-react';
 import type { DocumentDetail, Finding, User } from '../services/api';
 import { getExportUrl, submitDocument, getDocumentHistory, createFact, type DocumentHistoryItem } from '../services/api';
 
@@ -8,7 +8,7 @@ interface DocumentDetailViewProps {
   findings: Finding[];
   currentUser: User | null;
   onBack: () => void;
-  onDecideFinding: (findingId: string, decision: 'accepted' | 'edited' | 'rejected', finalText?: string) => void;
+  onDecideFinding: (findingId: string, decision: 'accepted' | 'edited' | 'rejected' | 'open', finalText?: string) => void;
   onRequestChanges: () => void;
   onApproveDocument: () => void;
 }
@@ -566,16 +566,33 @@ export const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                         </div>
                       ) : isDecided ? (
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
-                            <Check className="h-4 w-4" />
-                            {finding.status === 'accepted' ? 'Accepted by you' : finding.status === 'edited' ? 'Edited by you' : 'Rejected'}
+                          <span className={`font-semibold flex items-center gap-1.5 ${
+                            finding.status === 'rejected' ? 'text-rose-600' : 'text-emerald-700'
+                          }`}>
+                            {finding.status === 'accepted' ? (
+                              <>
+                                <Check className="h-4 w-4" />
+                                <span>Accepted by you</span>
+                              </>
+                            ) : finding.status === 'edited' ? (
+                              <>
+                                <Check className="h-4 w-4" />
+                                <span>Edited by you</span>
+                              </>
+                            ) : (
+                              <>
+                                <X className="h-4 w-4" />
+                                <span>Rejected by you</span>
+                              </>
+                            )}
                           </span>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDecideFinding(finding.id, 'rejected');
+                              onDecideFinding(finding.id, 'open');
                             }}
-                            className="text-slate-500 hover:text-slate-800 font-medium underline flex items-center gap-1"
+                            className="text-slate-500 hover:text-slate-800 font-medium underline flex items-center gap-1 cursor-pointer"
                           >
                             <RotateCcw className="h-3 w-3" />
                             <span>Undo</span>

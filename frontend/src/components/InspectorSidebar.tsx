@@ -24,7 +24,7 @@ interface InspectorSidebarProps {
   findings: Finding[];
   selectedFindingId: string | null;
   onSelectFinding: (findingId: string) => void;
-  onDecideFinding: (findingId: string, decision: 'accepted' | 'edited' | 'rejected', finalText?: string) => void;
+  onDecideFinding: (findingId: string, decision: 'accepted' | 'edited' | 'rejected' | 'open', finalText?: string) => void;
   onTriggerScan: () => void;
   onSubmitDocument?: () => void;
   onApproveDocument?: () => void;

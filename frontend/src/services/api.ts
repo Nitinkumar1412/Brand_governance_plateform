@@ -211,7 +211,7 @@ export async function approveDocument(documentId: string): Promise<{ id: string;
   return res.data;
 }
 
-export async function decideFinding(findingId: string, decision: 'accepted' | 'edited' | 'rejected', finalText?: string): Promise<{ id: string; status: string }> {
+export async function decideFinding(findingId: string, decision: 'accepted' | 'edited' | 'rejected' | 'open', finalText?: string): Promise<{ id: string; status: string }> {
   const res = await api.patch(`/findings/${findingId}/decision`, {
     decision,
     final_text: finalText,
